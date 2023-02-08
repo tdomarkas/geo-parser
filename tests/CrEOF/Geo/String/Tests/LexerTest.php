@@ -24,36 +24,33 @@
 namespace CrEOF\Geo\String\Tests;
 
 use CrEOF\Geo\String\Lexer;
+use Doctrine\Common\Lexer\Token;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 /**
- * Lexer tests
- *
  * @author  Derek J. Lambert <dlambert@dereklambert.com>
  * @license http://dlambert.mit-license.org MIT
  */
-class LexerTest extends \PHPUnit_Framework_TestCase
+class LexerTest extends TestCase
 {
-    /**
-     * @param string $input
-     * @param array  $expectedTokens
-     *
-     * @dataProvider testDataSource
-     */
-    public function testLexer($input, array $expectedTokens)
+    #[DataProvider('getCases')]
+    public function testLexer(string $input, array $expectedTokens): void
     {
-        $lexer = new Lexer($input);
+        $lexer = new Lexer();
+        $lexer->setInput($input);
         $index = 0;
 
         while (null !== $actual = $lexer->peek()) {
-            $this->assertEquals($expectedTokens[$index++], $actual);
+            self::assertEqualToken($expectedTokens[$index++], $actual);
         }
     }
 
-    public function testReusedLexer()
+    public function testReusedLexer(): void
     {
         $lexer = new Lexer();
 
-        foreach ($this->testDataSource() as $data) {
+        foreach ($this->getCases() as $data) {
             $input          = $data['input'];
             $expectedTokens = $data['expectedTokens'];
             $index          = 0;
@@ -61,7 +58,7 @@ class LexerTest extends \PHPUnit_Framework_TestCase
             $lexer->setInput($input);
 
             while (null !== $actual = $lexer->peek()) {
-                $this->assertEquals($expectedTokens[$index++], $actual);
+                self::assertEqualToken($expectedTokens[$index++], $actual);
             }
         }
     }
@@ -69,151 +66,158 @@ class LexerTest extends \PHPUnit_Framework_TestCase
     /**
      * @return array[]
      */
-    public function testDataSource()
+    public static function getCases(): array
     {
-        return array (
-            array(
+        return [
+            [
                 'input'          => '15',
-                'expectedTokens' => array(
-                    array('value' => 15, 'type' => Lexer::T_INTEGER, 'position' => 0),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 15, 'type' => Lexer::T_INTEGER, 'position' => 0],
+                ]
+            ],
+            [
                 'input'          => '1E5',
-                'expectedTokens' => array(
-                    array('value' => 100000, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 100000.0, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                ]
+            ],
+            [
                 'input'          => '1e5',
-                'expectedTokens' => array(
-                    array('value' => 100000, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 100000.0, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                ]
+            ],
+            [
                 'input'          => '1.5E5',
-                'expectedTokens' => array(
-                    array('value' => 150000, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 150000.0, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                ]
+            ],
+            [
                 'input'          => '1E-5',
-                'expectedTokens' => array(
-                    array('value' => 0.00001, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 0.00001, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                ]
+            ],
+            [
                 'input'          => '40° 26\' 46" N',
-                'expectedTokens' => array(
-                    array('value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2),
-                    array('value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 5),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 7),
-                    array('value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 9),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 11),
-                    array('value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 13)
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2],
+                    ['value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 5],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 7],
+                    ['value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 9],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 11],
+                    ['value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 13]
+                ]
+            ],
+            [
                 'input'          => '40° 26\' 46" N 79° 58\' 56" W',
-                'expectedTokens' => array(
-                    array('value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2),
-                    array('value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 5),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 7),
-                    array('value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 9),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 11),
-                    array('value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 13),
-                    array('value' => 79, 'type' => Lexer::T_INTEGER, 'position' => 15),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 17),
-                    array('value' => 58, 'type' => Lexer::T_INTEGER, 'position' => 20),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 22),
-                    array('value' => 56, 'type' => Lexer::T_INTEGER, 'position' => 24),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 26),
-                    array('value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 28)
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2],
+                    ['value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 5],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 7],
+                    ['value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 9],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 11],
+                    ['value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 13],
+                    ['value' => 79, 'type' => Lexer::T_INTEGER, 'position' => 15],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 17],
+                    ['value' => 58, 'type' => Lexer::T_INTEGER, 'position' => 20],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 22],
+                    ['value' => 56, 'type' => Lexer::T_INTEGER, 'position' => 24],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 26],
+                    ['value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 28]
+                ]
+            ],
+            [
                 'input'          => '40°26\'46"N 79°58\'56"W',
-                'expectedTokens' => array(
-                    array('value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2),
-                    array('value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 4),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 6),
-                    array('value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 7),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 9),
-                    array('value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 10),
-                    array('value' => 79, 'type' => Lexer::T_INTEGER, 'position' => 12),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 14),
-                    array('value' => 58, 'type' => Lexer::T_INTEGER, 'position' => 16),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 18),
-                    array('value' => 56, 'type' => Lexer::T_INTEGER, 'position' => 19),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 21),
-                    array('value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 22)
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2],
+                    ['value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 4],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 6],
+                    ['value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 7],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 9],
+                    ['value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 10],
+                    ['value' => 79, 'type' => Lexer::T_INTEGER, 'position' => 12],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 14],
+                    ['value' => 58, 'type' => Lexer::T_INTEGER, 'position' => 16],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 18],
+                    ['value' => 56, 'type' => Lexer::T_INTEGER, 'position' => 19],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 21],
+                    ['value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 22]
+                ]
+            ],
+            [
                 'input'          => '40°26\'46"N, 79°58\'56"W',
-                'expectedTokens' => array(
-                    array('value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2),
-                    array('value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 4),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 6),
-                    array('value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 7),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 9),
-                    array('value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 10),
-                    array('value' => ',', 'type' => Lexer::T_COMMA, 'position' => 11),
-                    array('value' => 79, 'type' => Lexer::T_INTEGER, 'position' => 13),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 15),
-                    array('value' => 58, 'type' => Lexer::T_INTEGER, 'position' => 17),
-                    array('value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 19),
-                    array('value' => 56, 'type' => Lexer::T_INTEGER, 'position' => 20),
-                    array('value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 22),
-                    array('value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 23)
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40, 'type' => Lexer::T_INTEGER, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 2],
+                    ['value' => 26, 'type' => Lexer::T_INTEGER, 'position' => 4],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 6],
+                    ['value' => 46, 'type' => Lexer::T_INTEGER, 'position' => 7],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 9],
+                    ['value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 10],
+                    ['value' => ',', 'type' => Lexer::T_COMMA, 'position' => 11],
+                    ['value' => 79, 'type' => Lexer::T_INTEGER, 'position' => 13],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 15],
+                    ['value' => 58, 'type' => Lexer::T_INTEGER, 'position' => 17],
+                    ['value' => '\'', 'type' => Lexer::T_APOSTROPHE, 'position' => 19],
+                    ['value' => 56, 'type' => Lexer::T_INTEGER, 'position' => 20],
+                    ['value' => '"', 'type' => Lexer::T_QUOTE, 'position' => 22],
+                    ['value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 23]
+                ]
+            ],
+            [
                 'input'          => '40.4738° N, 79.553° W',
-                'expectedTokens' => array(
-                    array('value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7),
-                    array('value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 10),
-                    array('value' => ',', 'type' => Lexer::T_COMMA, 'position' => 11),
-                    array('value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 13),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 19),
-                    array('value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 22)
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7],
+                    ['value' => 'N', 'type' => Lexer::T_CARDINAL_LAT, 'position' => 10],
+                    ['value' => ',', 'type' => Lexer::T_COMMA, 'position' => 11],
+                    ['value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 13],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 19],
+                    ['value' => 'W', 'type' => Lexer::T_CARDINAL_LON, 'position' => 22]
+                ]
+            ],
+            [
                 'input'          => '40.4738°, 79.553°',
-                'expectedTokens' => array(
-                    array('value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7),
-                    array('value' => ',', 'type' => Lexer::T_COMMA, 'position' => 9),
-                    array('value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 11),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 17),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7],
+                    ['value' => ',', 'type' => Lexer::T_COMMA, 'position' => 9],
+                    ['value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 11],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 17],
+                ]
+            ],
+            [
                 'input'          => '40.4738° -79.553°',
-                'expectedTokens' => array(
-                    array('value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7),
-                    array('value' => '-', 'type' => Lexer::T_MINUS, 'position' => 10),
-                    array('value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 11),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 17),
-                )
-            ),
-            array(
+                'expectedTokens' => [
+                    ['value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7],
+                    ['value' => '-', 'type' => Lexer::T_MINUS, 'position' => 10],
+                    ['value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 11],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 17],
+                ]
+            ],
+            [
                 'input'          => "40.4738° \t -79.553°",
-                'expectedTokens' => array(
-                    array('value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7),
-                    array('value' => '-', 'type' => Lexer::T_MINUS, 'position' => 12),
-                    array('value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 13),
-                    array('value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 19),
-                )
-            )
-        );
+                'expectedTokens' => [
+                    ['value' => 40.4738, 'type' => Lexer::T_FLOAT, 'position' => 0],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 7],
+                    ['value' => '-', 'type' => Lexer::T_MINUS, 'position' => 12],
+                    ['value' => 79.553, 'type' => Lexer::T_FLOAT, 'position' => 13],
+                    ['value' => '°', 'type' => Lexer::T_DEGREE, 'position' => 19],
+                ]
+            ]
+        ];
+    }
+
+    private static function assertEqualToken(array $expectedToken, Token $actual): void
+    {
+        self::assertEqualsWithDelta($expectedToken['value'], $actual->value, 0.000_000_001);
+        self::assertSame($expectedToken['type'], $actual->type);
+        self::assertSame($expectedToken['position'], $actual->position);
     }
 }

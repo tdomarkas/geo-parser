@@ -24,31 +24,24 @@
 namespace CrEOF\Geo\String\Tests;
 
 use CrEOF\Geo\String\Parser;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 /**
- * Parser tests
- *
  * @author  Derek J. Lambert <dlambert@dereklambert.com>
  * @license http://dlambert.mit-license.org MIT
  */
-class ParserTest extends \PHPUnit_Framework_TestCase
+class ParserTest extends TestCase
 {
-    /**
-     * @param string $input
-     * @param mixed  $expected
-     *
-     * @dataProvider dataSourceGood
-     */
-    public function testGoodValues($input, $expected)
+    #[DataProvider('dataSourceGood')]
+    public function testGoodValues(string $input, mixed $expected)
     {
-        $parser = new Parser($input);
+        $value = (new Parser())->parse($input);
 
-        $value = $parser->parse();
-
-        $this->assertEquals($expected, $value);
+        self::assertEqualsWithDelta($expected, $value, 0.000_000_001);
     }
 
-    public function testParserReuse()
+    public function testParserReuse(): void
     {
         $parser = new Parser();
 
@@ -58,309 +51,299 @@ class ParserTest extends \PHPUnit_Framework_TestCase
 
             $value = $parser->parse($input);
 
-            $this->assertEquals($expected, $value);
+            self::assertEqualsWithDelta($expected, $value, 0.000_000_001);
         }
     }
 
-    /**
-     * @param string $input
-     * @param string $exception
-     * @param string $message
-     *
-     * @dataProvider dataSourceBad
-     */
-    public function testBadValues($input, $exception, $message)
+    #[DataProvider('getExceptionalCases')]
+    public function testBadValues($input, $exception, $message): void
     {
-        $this->setExpectedException($exception, $message);
+        $this->expectExceptionMessage($message);
+        $this->expectException($exception);
 
-        $parser = new Parser($input);
-
-        $parser->parse();
+        $parser = new Parser();
+        $parser->parse($input);
     }
 
     /**
      * @return array[]
      */
-    public function dataSourceGood()
+    public static function dataSourceGood(): array
     {
-        return array(
-            array(
-                'input'    => 40,
-                'expected' => 40
-            ),
-            array(
+        return [
+            [
                 'input'    => '40',
                 'expected' => 40
-            ),
-            array(
+            ],
+            [
                 'input'    => '-40',
                 'expected' => -40
-            ),
-            array(
+            ],
+            [
                 'input'    => '1E5',
                 'expected' => 100000
-            ),
-            array(
+            ],
+            [
                 'input'    => '1e5',
                 'expected' => 100000
-            ),
-            array(
+            ],
+            [
                 'input'    => '1e5°',
                 'expected' => 100000
-            ),
-            array(
+            ],
+            [
                 'input'    => '40°',
                 'expected' => 40
-            ),
-            array(
+            ],
+            [
                 'input'    => '-40°',
                 'expected' => -40
-            ),
-            array(
+            ],
+            [
                 'input'    => '40° N',
                 'expected' => 40
-            ),
-            array(
+            ],
+            [
                 'input'    => '40° S',
                 'expected' => -40
-            ),
-            array(
+            ],
+            [
                 'input'    => '45.24',
                 'expected' => 45.24
-            ),
-            array(
+            ],
+            [
                 'input'    => '45.24°',
                 'expected' => 45.24
-            ),
-            array(
+            ],
+            [
                 'input'    => '+45.24°',
                 'expected' => 45.24
-            ),
-            array(
+            ],
+            [
                 'input'    => '45.24° S',
                 'expected' => -45.24
-            ),
-            array(
+            ],
+            [
                 'input'    => '40° 26\' 46" N',
                 'expected' => 40.446111111111
-            ),
-            array(
+            ],
+            [
                 'input'    => '40:26S',
                 'expected' => -40.43333333333333
-            ),
-            array(
+            ],
+            [
                 'input'    => '79:56:55W',
-                'expected' => -79.948611111111
-            ),
-            array(
+                'expected' => -79.948611111111,
+            ],
+            [
                 'input'    => '40:26:46N',
-                'expected' => 40.446111111111
-            ),
-            array(
+                'expected' => 40.446111111111,
+            ],
+            [
                 'input'    => '40° N 79° W',
-                'expected' => array(40, -79)
-            ),
-            array(
+                'expected' => [40, -79],
+            ],
+            [
                 'input'    => '40 79',
-                'expected' => array(40, 79)
-            ),
-            array(
+                'expected' => [40, 79]
+            ],
+            [
                 'input'    => '40° 79°',
-                'expected' => array(40, 79)
-            ),
-            array(
+                'expected' => [40, 79]
+            ],
+            [
                 'input'    => '40, 79',
-                'expected' => array(40, 79)
-            ),
-            array(
+                'expected' => [40, 79]
+            ],
+            [
                 'input'    => '40°, 79°',
-                'expected' => array(40, 79)
-            ),
-            array(
+                'expected' => [40, 79]
+            ],
+            [
                 'input'    => '40° 26\' 46" N 79° 58\' 56" W',
-                'expected' => array(40.446111111111, -79.982222222222)
-            ),
-            array(
+                'expected' => [40.446111111111, -79.982222222222]
+            ],
+            [
                 'input'    => '40° 26\' N 79° 58\' W',
-                'expected' => array(40.43333333333333, -79.966666666666669)
-            ),
-            array(
+                'expected' => [40.43333333333333, -79.966666666666669]
+            ],
+            [
                 'input'    => '40.4738° N, 79.553° W',
-                'expected' => array(40.4738, -79.553)
-            ),
-            array(
+                'expected' => [40.4738, -79.553]
+            ],
+            [
                 'input'    => '40.4738° S, 79.553° W',
-                'expected' => array(-40.4738, -79.553)
-            ),
-            array(
+                'expected' => [-40.4738, -79.553]
+            ],
+            [
                 'input'    => '40° 26.222\' N 79° 58.52\' E',
-                'expected' => array(40.437033333333, 79.975333333333)
-            ),
-            array(
+                'expected' => [40.437033333333, 79.975333333333]
+            ],
+            [
                 'input'    => '40°26.222\'N 79°58.52\'E',
-                'expected' => array(40.437033333333, 79.975333333333)
-            ),
-            array(
+                'expected' => [40.437033333333, 79.975333333333]
+            ],
+            [
                 'input'    => '40°26.222\' 79°58.52\'',
-                'expected' => array(40.437033333333, 79.975333333333)
-            ),
-            array(
+                'expected' => [40.437033333333, 79.975333333333]
+            ],
+            [
                 'input'    => '40.222° -79.5852°',
-                'expected' => array(40.222, -79.5852)
-            ),
-            array(
+                'expected' => [40.222, -79.5852]
+            ],
+            [
                 'input'    => '40.222°, -79.5852°',
-                'expected' => array(40.222, -79.5852)
-            ),
-            array(
+                'expected' => [40.222, -79.5852]
+            ],
+            [
                 'input'    => '44°58\'53.9"N 93°19\'25.8"W',
-                'expected' => array(44.981638888888888, -93.32383333333334)
-            ),
-            array(
+                'expected' => [44.981638888888888, -93.32383333333334]
+            ],
+            [
                 'input'    => '44°58\'53.9"N, 93°19\'25.8"W',
-                'expected' => array(44.981638888888888, -93.32383333333334)
-            ),
-            array(
+                'expected' => [44.981638888888888, -93.32383333333334]
+            ],
+            [
                 'input'    => '79:56:55W 40:26:46N',
-                'expected' => array(-79.948611111111, 40.446111111111)
-            ),
-            array(
+                'expected' => [-79.948611111111, 40.446111111111]
+            ],
+            [
                 'input'    => '79:56:55 W, 40:26:46 N',
-                'expected' => array(-79.948611111111, 40.446111111111)
-            ),
-            array(
+                'expected' => [-79.948611111111, 40.446111111111]
+            ],
+            [
                 'input'    => '79°56′55″W, 40°26′46″N',
-                'expected' => array(-79.948611111111, 40.446111111111)
-            )
-        );
+                'expected' => [-79.948611111111, 40.446111111111]
+            ]
+        ];
     }
 
     /**
-     * @return string[]
+     * @return array[]
      */
-    public function dataSourceBad()
+    public static function getExceptionalCases(): array
     {
-        return array(
-            array(
+        return [
+            [
                 'input'     => '-40°N 45°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 5: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "N" in value "-40°N 45°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '+40°N 45°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 5: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "N" in value "+40°N 45°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40°N +45°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 6: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "+" in value "40°N +45°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40°N -45W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 6: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "-" in value "40°N -45W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40N -45°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 4: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "-" in value "40N -45°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40N 45°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 6: Error: Expected CrEOF\Geo\String\Lexer::T_CARDINAL_LON, got "°" in value "40N 45°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40°N 45°S',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 10: Error: Expected CrEOF\Geo\String\Lexer::T_CARDINAL_LON, got "S" in value "40°N 45°S"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40°W 45°E',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 10: Error: Expected CrEOF\Geo\String\Lexer::T_CARDINAL_LAT, got "E" in value "40°W 45°E"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40° 45',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col -1: Error: Expected CrEOF\Geo\String\Lexer::T_APOSTROPHE, got end of string. in value "40° 45"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40°, 45',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col -1: Error: Expected CrEOF\Geo\String\Lexer::T_DEGREE, got end of string. in value "40°, 45"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40N 45',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col -1: Error: Expected CrEOF\Geo\String\Lexer::T_CARDINAL_LON, got end of string. in value "40N 45"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40 45W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 5: Error: Expected end of string, got "W" in value "40 45W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '-40.757° 45°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 14: Error: Expected end of string, got "W" in value "-40.757° 45°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40.757°N -45.567°W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 10: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "-" in value "40.757°N -45.567°W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '44°58\'53.9N 93°19\'25.8"W',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 11: Error: Expected CrEOF\Geo\String\Lexer::T_QUOTE, got "N" in value "44°58\'53.9N 93°19\'25.8"W"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '40:26\'',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 5: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "\'" in value "40:26\'"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '132.4432:',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 8: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got ":" in value "132.4432:"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '55:34:22°',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 8: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "°" in value "55:34:22°"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '55:34.22',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 3: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER, got "34.22" in value "55:34.22"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '55#34.22',
                 'exception' => 'UnexpectedValueException',
                 'message'   => '[Syntax Error] line 0, col 2: Error: Expected CrEOF\Geo\String\Lexer::T_INTEGER or CrEOF\Geo\String\Lexer::T_FLOAT, got "#" in value "55#34.22"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '200N',
                 'exception' => 'RangeException',
                 'message'   => '[Range Error] Error: Degrees out of range -90 to 90 in value "200N"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '55:200:32',
                 'exception' => 'RangeException',
                 'message'   => '[Range Error] Error: Minutes greater than 60 in value "55:200:32"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '55:20:99',
                 'exception' => 'RangeException',
                 'message'   => '[Range Error] Error: Seconds greater than 60 in value "55:20:99"'
-            ),
-            array(
+            ],
+            [
                 'input'     => '55°70.99\'',
                 'exception' => 'RangeException',
                 'message'   => '[Range Error] Error: Minutes greater than 60 in value "55°70.99\'"'
-            )
-        );
+            ]
+        ];
     }
 }

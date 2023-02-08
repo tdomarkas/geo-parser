@@ -36,59 +36,26 @@ class Parser
 {
     /**
      * Original input string
-     *
-     * @var string
      */
-    private $input;
+    private ?string $input = null;
 
-    /**
-     * @var int
-     */
-    private $nextCardinal;
+    private ?int $nextCardinal = null;
 
-    /**
-     * @var int
-     */
-    private $nextSymbol;
+    private null|int|bool $nextSymbol = null;
 
-    /**
-     * @var Lexer
-     */
-    private $lexer;
+    private ?Lexer $lexer = null;
 
-    /**
-     * Constructor
-     *
-     * Setup up instance properties
-     *
-     * @param string|null $input
-     */
-    public function __construct($input = null)
+    public function parse(string $input): int|float|array
     {
-        $this->lexer = new Lexer();
-
-        if (null !== $input) {
-            $this->input = (string) $input;
-        }
-    }
-
-    /**
-     * Parse input string
-     *
-     * @param string|null $input
-     *
-     * @return float|int|array
-     */
-    public function parse($input = null)
-    {
-        if (null !== $input) {
-            $this->input = (string) $input;
+        if ($this->lexer === null) {
+            $this->lexer = new Lexer();
         }
 
         $this->nextCardinal = null;
-        $this->nextSymbol   = null;
+        $this->nextSymbol = null;
 
-        $this->lexer->setInput($this->input);
+        $this->input = $input;
+        $this->lexer->setInput($input);
 
         // Move Lexer to first token
         $this->lexer->moveNext();
@@ -100,10 +67,9 @@ class Parser
     /**
      * Match and return single value or pair
      *
-     * @return float|int|array
      * @throws UnexpectedValueException
      */
-    private function point()
+    private function point(): int|float|array
     {
         // Get first coordinate value
         $x = $this->coordinate();
@@ -127,21 +93,19 @@ class Parser
         }
 
         // Return coordinate array
-        return array($x, $y);
+        return [$x, $y];
     }
 
     /**
      * Match and return single coordinate value
-     *
-     * @return float|int
      */
-    private function coordinate()
+    private function coordinate(): int|float
     {
-        // By default don't change sign
+        // By default, don't change sign
         $sign = false;
 
         // Match sign if cardinal direction has not been seen
-        if (! ($this->nextCardinal > 0) && $this->lexer->isNextTokenAny(array(Lexer::T_PLUS, Lexer::T_MINUS))) {
+        if (! ($this->nextCardinal > 0) && $this->lexer->isNextTokenAny([Lexer::T_PLUS, Lexer::T_MINUS])) {
             $sign = $this->sign();
         }
 
@@ -150,7 +114,7 @@ class Parser
 
         // If sign not matched determine sign from cardinal direction when required
         // or if cardinal direction is present and this is first coordinate in a pair
-        if (false === $sign && ($this->nextCardinal > 0 || (null === $this->nextCardinal && $this->lexer->isNextTokenAny(array(Lexer::T_CARDINAL_LAT, Lexer::T_CARDINAL_LON))))) {
+        if (false === $sign && ($this->nextCardinal > 0 || (null === $this->nextCardinal && $this->lexer->isNextTokenAny([Lexer::T_CARDINAL_LAT, Lexer::T_CARDINAL_LON])))) {
             return $this->cardinal($coordinate);
         }
 
@@ -166,7 +130,7 @@ class Parser
      *
      * @return int
      */
-    private function sign()
+    private function sign(): int
     {
         if ($this->lexer->isNextToken(Lexer::T_PLUS)) {
             // Match plus and set sign
@@ -183,10 +147,8 @@ class Parser
 
     /**
      * Match and return degrees value
-     *
-     * @return float|int
      */
-    private function degrees()
+    private function degrees(): int|float
     {
         // Reset symbol requirement
         if ($this->nextSymbol === Lexer::T_APOSTROPHE || $this->nextSymbol === Lexer::T_QUOTE) {
@@ -219,10 +181,10 @@ class Parser
         }
 
         // Grab peek of next token since we can't array dereference result in PHP 5.3
-        $glimpse = $this->lexer->glimpse();
+        $nextTokenType = $this->lexer->glimpse()['type'] ?? null;
 
         // If a colon hasn't been matched, and next token is a number followed by degree symbol, when tuple separator is space instead of comma, this value is complete
-        if (Lexer::T_COLON !== $this->nextSymbol && $this->lexer->isNextTokenAny(array(Lexer::T_INTEGER, Lexer::T_FLOAT)) && Lexer::T_DEGREE === $glimpse['type']) {
+        if (Lexer::T_COLON !== $this->nextSymbol && $this->lexer->isNextTokenAny([Lexer::T_INTEGER, Lexer::T_FLOAT]) && Lexer::T_DEGREE === $nextTokenType) {
             return $degrees;
         }
 
@@ -235,13 +197,11 @@ class Parser
 
     /**
      * Match value component symbol if required or present
-     *
-     * @return bool|int
      */
-    private function symbol()
+    private function symbol(): bool|int
     {
         // If symbol requirement not set match colon if present
-        if (null === $this->nextSymbol && $this->lexer->isNextToken(Lexer::T_COLON)) {
+        if ($this->nextSymbol === null && $this->lexer->isNextToken(Lexer::T_COLON)) {
             $this->match(Lexer::T_COLON);
 
             // Set symbol requirement for any remaining value
@@ -249,7 +209,7 @@ class Parser
         }
 
         // If symbol requirement not set match degree if present
-        if (null === $this->nextSymbol && $this->lexer->isNextToken(Lexer::T_DEGREE)) {
+        if ($this->nextSymbol === null && $this->lexer->isNextToken(Lexer::T_DEGREE)) {
             $this->match(Lexer::T_DEGREE);
 
             // Set requirement for any remaining value
@@ -285,10 +245,9 @@ class Parser
     /**
      * Match and return minutes value
      *
-     * @return float|int
      * @throws RangeException
      */
-    private function minutes()
+    private function minutes(): int|float
     {
         // If using colon or minutes is an integer parse value
         if (Lexer::T_COLON === $this->nextSymbol || $this->lexer->isNextToken(Lexer::T_INTEGER)) {
@@ -303,7 +262,7 @@ class Parser
             $minutes = $minutes / 60;
 
             // If using colon and one doesn't follow value is done
-            if (Lexer::T_COLON === $this->nextSymbol && ! $this->lexer->isNextToken(Lexer::T_COLON)) {
+            if (Lexer::T_COLON === $this->nextSymbol && !$this->lexer->isNextToken(Lexer::T_COLON)) {
                 return $minutes;
             }
 
@@ -343,13 +302,12 @@ class Parser
     /**
      * Match and return seconds value
      *
-     * @return float|int
      * @throws RangeException
      */
-    private function seconds()
+    private function seconds(): int|float
     {
         // Seconds value can be an integer or float
-        if ($this->lexer->isNextTokenAny(array(Lexer::T_INTEGER, Lexer::T_FLOAT))) {
+        if ($this->lexer->isNextTokenAny([Lexer::T_INTEGER, Lexer::T_FLOAT])) {
             $seconds = $this->number();
 
             // Throw exception if seconds are greater than 60
@@ -376,10 +334,9 @@ class Parser
     /**
      * Match integer or float token and return value
      *
-     * @return int|float
      * @throws UnexpectedValueException
      */
-    private function number()
+    private function number(): int|float
     {
         // If next token is a float match and return it
         if ($this->lexer->isNextToken(Lexer::T_FLOAT)) {
@@ -398,15 +355,12 @@ class Parser
     /**
      * Match cardinal direction and return sign
      *
-     * @param int|float $value
-     *
-     * @return int
      * @throws RangeException
      */
-    private function cardinal($value)
+    private function cardinal(int|float $value): int|float
     {
         // If cardinal direction was not on previous coordinate it can be anything
-        if (null === $this->nextCardinal) {
+        if ($this->nextCardinal === null) {
             $this->nextCardinal = Lexer::T_CARDINAL_LON === $this->lexer->lookahead['type'] ? Lexer::T_CARDINAL_LON : Lexer::T_CARDINAL_LAT;
         }
 
@@ -452,12 +406,9 @@ class Parser
     /**
      * Match token and return value
      *
-     * @param int $token
-     *
-     * @return mixed
      * @throws UnexpectedValueException
      */
-    private function match($token)
+    private function match(int $token): ?string
     {
         // If next token isn't type specified throw error
         if (! $this->lexer->isNextToken($token)) {
@@ -468,7 +419,7 @@ class Parser
         $this->lexer->moveNext();
 
         // Return the token value
-        return $this->lexer->token['value'];
+        return $this->lexer->token?->value ?? null;
     }
 
     /**
@@ -478,15 +429,15 @@ class Parser
      *
      * @return UnexpectedValueException
      */
-    private function syntaxError($expected)
+    private function syntaxError(string $expected): UnexpectedValueException
     {
         $expected = sprintf('Expected %s, got', $expected);
         $token    = $this->lexer->lookahead;
-        $found    = null === $this->lexer->lookahead ? 'end of string.' : sprintf('"%s"', $token['value']);
+        $found    = $this->lexer->lookahead === null ? 'end of string.' : sprintf('"%s"', $token['value']);
 
         $message = sprintf(
             '[Syntax Error] line 0, col %d: Error: %s %s in value "%s"',
-            isset($token['position']) ? $token['position'] : '-1',
+            $token['position'] ?? '-1',
             $expected,
             $found,
             $this->input
@@ -496,17 +447,17 @@ class Parser
     }
 
     /**
-     * Create out of range exception
+     * Create out of range exception.
      *
      * @param string $type
-     * @param int    $high
-     * @param int    $low
+     * @param int $high
+     * @param int|null $low
      *
      * @return RangeException
      */
-    private function rangeError($type, $high, $low = null)
+    private function rangeError(string $type, int $high, int $low = null): RangeException
     {
-        $range   = null === $low ? sprintf('greater than %d', $high) : sprintf('out of range %d to %d', $low, $high);
+        $range   = $low === null ? sprintf('greater than %d', $high) : sprintf('out of range %d to %d', $low, $high);
         $message = sprintf('[Range Error] Error: %s %s in value "%s"', $type, $range, $this->input);
 
         return new RangeException($message);
